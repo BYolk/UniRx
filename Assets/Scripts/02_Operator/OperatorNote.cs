@@ -6,6 +6,7 @@ using UniRx;
 using System;
 using UniRx.Triggers;
 using UnityEngine.UI;
+using System.Threading;
 
 #region 1、UniRx 从 Linq 中借鉴而来的操作符：
 
@@ -1253,26 +1254,67 @@ using UnityEngine.UI;
 #endregion
 
 
-
 #region 3、UniRx 独有的操作符：
+///0、简介：
+/// 1、这章的操作符是 UniRx 对 Unity 所?持的操作符，这些操作符都是 UniRx 独有的操作符。并且这些操作符?常实?，学习完这些，基本上 UniRx 可以全部替代 Unity 的 Coroutine 了
+/// 2、本章操作符?览：
+///     ---
+///     NextFrame 
+///     DelayFrame
+///     FrameInterval
+///     BatchFrame
+///     ForEachAsync
+///     FrameTimeInterval
+///     SampleFrame
+///     RepeatUntilDestroy
+///     SubscribeOnMainThread
+///     DelayFrameSubscript
+///     ThrottleFirstFrame
+///     ThrottleFrame
+///     TakeUntilDestroy
+///     TakeUntilDisable
+///     RepeatUntilDisable
+///     ---
+///     
 
-///1、
-///
+
+///1、NextFrame 操作符：
+/// 1、示例代码：
+///     ---
+///     Debug.Log(Time.frameCount);// 输出自游戏启动以来的总帧数，会输出 1
+///     Observable.NextFrame().Subscribe(_ => Debug.Log(Time.frameCount));//游戏启动是 1 帧，等到下 1 帧 1 帧，所以回调执行时是第 3 帧
+///     ---
+/// 2、NextFrame 可以理解为“略过一帧”
+/// 
 
 
-///2、
-///
+///2、DelayFrame 操作符：
+/// 1、NextFrame 操作符是略过 1 帧，如果要略过多帧，就使用 DelayFrame 操作符
+/// 2、示例代码：
+///     ---
+///     Debug.Log(Time.frameCount);
+///     Observable.ReturnUnit().DelayFrame(10).Subscribe(_ => Debug.Log(Time.frameCount));
+///     ---
+/// 
 
 
-///3、
-///
+///3、FrameInterval 操作符：
+/// 1、示例代码：
+///     ---
+///     // 运?结果：输出距离上?次?标点击所间隔的帧数
+///     Observable.EveryUpdate()// frameInterval 当前的帧数是 EveryUpdate 传递过去的
+///         .Where(_ => Input.GetMouseButtonDown(0))
+///         .FrameInterval()
+///         .Subscribe(frameInterval => Debug.Log($"距离上一次点击的帧数：{frameInterval.Interval},当前的帧数：{frameInterval.Value}"));
+///     ---
+/// 2、FrameInterval：Frame 是帧的意思，Interval 是间隔的意思，即上次发射数据到当前发射数据之间的间隔帧数  
 
 
 ///4、BatchFrame 操作符：
 /// 1、Batch 是 “一批”、“分批处理”的意思，BatchFrame 就是进行多帧的批处理
 /// 2、示例代码：
 ///     ---
-///     // 运?结果：收集每 100 帧内的点击事件，然后进?统?的输出
+///     // 运行结果：收集每 100 帧内的点击事件，然后进行统一的输出
 ///     Observable.EveryUpdate()
 ///         .Where(_ => Input.GetMouseButtonDown(0))
 ///         .BatchFrame(100, FrameCountType.EndOfFrame)
@@ -1280,12 +1322,27 @@ using UnityEngine.UI;
 ///         
 
 
-///5、
-///
+///5、ForEachAsync 操作符：
+/// 1、示例代码：
+///     ---
+///     Observable.Range(0, 10)
+///                 .ForEachAsync(number => Debug.Log(number))// 0 1 2 3 4 5 6 7 8 9
+///                 .Subscribe(number => Debug.Log(number));// 经过 ForEachAsync 操作之后，会返回一个 Unit 类型数据，输出为 ()
+///     ---
+///     
 
 
-///6、
-///
+///6、FrameTimeInterval 操作符：
+/// 1、帧的时间间隔
+/// 2、示例代码：
+///     ---
+///     // 运?结果：当点击?标时，返回距离上?次点击的帧的总时间
+///     Observable.EveryUpdate()
+///         .Where(_ => Input.GetMouseButtonDown(0))
+///         .FrameTimeInterval()// 如果在 3.5 帧初点击鼠标，输出的是第 3 帧的时间，所以比起 TimeInterval 精度会低一点，TimeInterval 会输出 3.5 帧的时间
+///         .Subscribe(frameTimeInterval =>
+///             Debug.Log($"距离上一次点击的帧的事件间隔：{frameTimeInterval.Interval}，距离游戏开始帧的总时间：{frameTimeInterval.Value}"));
+///     ---
 
 
 ///7、SampleFrame 操作符：
@@ -1298,8 +1355,120 @@ using UnityEngine.UI;
 ///
 
 
-///8、
+///8、RepeatUntilDestroy 操作符：
+/// 1、示例代码：
+///     ---
+///     // 运?结果：每隔?秒输出?次 ticked，当把脚本所在 GameObject 删除掉，则不再输出
+///     Observable.Timer(TimeSpan.FromSeconds(1.0f)).RepeatUntilDestroy(this).Subscribe(_ => Debug.Log("ticked"));
+///     ---
+///     
+
+
+///9、ObserveOnMainThread 操作符：
+/// 1、示例代码：
+///     ---
+///     // 输出结果: 0，
+///     // 2 秒输出：线程结束,  1.034706
+///     Debug.Log(Time.time);
+///     Observable.Start(() =>// 开启一个线程
+///     {
+///         Thread.Sleep(TimeSpan.FromSeconds(1.0f));
+///         return "线程结束";
+///     })
+///     .ObserveOnMainThread()
+///     .Subscribe(threadResult => Debug.Log($"{threadResult},  {Time.time}"));
+///     ---
+///     
+
+
+///10、DelayFrameSubscript 操作符：
+/// 1、示例代码：
+///     ---
+///     Debug.Log(Time.frameCount);// 第一帧
+///     Observable.ReturnUnit()
+///         .DelayFrameSubscription(10)// 延迟 10 帧订阅，第十一帧
+///         .Subscribe(_ => Debug.Log(Time.frameCount));// 第十二帧
+///     ---
+///     
+
+
+///11、ThrottleFirstFrame 操作符：
+/// 1、示例代码：
+/// ---
+///     // 运?结果：每 30 帧内的第?次点击事件输出 clicked
+///     Observable.EveryUpdate()
+///            .Where(_ => Input.GetMouseButtonDown(0))
+///            .ThrottleFirstFrame(100)
+///            .Subscribe(_ => Debug.Log("clicked"));
 ///
+///      Observable.EveryUpdate()
+///            .SampleFrame(100)// 每隔 100 帧发射一次数据（用于对比上方）
+///            .Subscribe(_ => Debug.Log("frame ended"));
+///            
+
+
+///12、ThrottleFrame 操作符：
+/// 1、示例代码：
+///     ---
+///     // 运?结果：?标点击的 1000 帧内，没有?标点击事件，则在 100 帧后输出，否则重新计算帧数
+///     Observable.EveryUpdate()
+///         .Where(_ => Input.GetMouseButtonDown(0))
+///         .ThrottleFrame(1000)
+///         .Subscribe(_ => Debug.Log("clicked"));
+///     ---
+/// 2、在当前发射一个数据，如果在规定时间内不再发射任何数据，那么这个数据就会发送出去，否则这个数据会被屏蔽掉
+
+
+///13、TimeoutFrame 操作符：
+/// 1、示例代码：
+///     ---
+///     // 运?结果：超过 100 帧不点击?标，报出异常
+///     Observable.EveryUpdate()
+///         .Where(_ => Input.GetMouseButtonDown(0))
+///         .TimeoutFrame(100)
+///         .Subscribe(_ => Debug.Log("clicked"));
+///     ---
+///     
+
+
+///14、TakeUntilDestroy 操作符：
+/// 1、示例代码：
+///     ---
+///     // 运?结果：每次按下?标左键，输出 mouse clicked，将该脚本所在的 GameObject 被销毁后，点击?标不再输出
+///     Observable.EveryUpdate()
+///         .Where(_ => Input.GetMouseButtonDown(0))
+///         .TakeUntilDestroy(this)
+///         .Subscribe(_ => Debug.Log("mouse clicked"));
+///     ---
+///     
+
+
+///15、TakeUntilDisable 操作符：
+/// 1、示例代码：
+///     ---
+///     // 运?结果：每次按下?标左键，输出 mouse clicked，将该脚本所在的 GameObject 隐藏掉后，点击?标不再输出
+///     Observable.EveryUpdate()
+///         .Where(_ => Input.GetMouseButton(0))
+///         .TakeUntilDisable(this)
+///         .Subscribe(_ => Debug.Log("mouse clicked"));
+///     ---
+///     
+
+
+///16、RepeatUntilDisable 操作符：
+/// 1、示例代码；
+///     ---
+///     // 运?结果：每隔?秒输出 ticked，当把该脚本所在的 GameObject 隐藏，则停?输出。
+///     Observable.Timer(TimeSpan.FromSeconds(1.0f))
+///         .RepeatUntilDisable(this)
+///         .Subscribe(_ => Debug.Log("ticked"));
+///     ---
+///     
+
+
+///17、总结：
+/// 1、到此已经把 UniRx 6.2.2 版本的所有操作符介绍完了。基本上有了这个课程在?，在开发中遇到了?较难以理解的操作符或者 Observable 就不?害怕了，在本课程都能找到。
+/// 2、UniRx 第?季课程到此结束了，第三季的课程主要偏重?向是 UniRx 的原理及源码分析及背后的设计模式等，能更加透彻地掌握 UniRx 发挥它的最?威?
 #endregion
 public class OperatorNote : MonoBehaviour
 {
@@ -2213,6 +2382,26 @@ public class OperatorNote : MonoBehaviour
 
 
         #region 3、UniRx 独有的操作符：
+        #region 1、NextFrame 操作符：
+        /*Debug.Log(Time.frameCount);// 输出自游戏启动以来的总帧数，会输出 1
+        Observable.NextFrame().Subscribe(_ => Debug.Log(Time.frameCount));//游戏启动是 1 帧，等到下 1 帧，所以回调执行时是第 3 帧*/
+        #endregion
+
+
+        #region 2、DelayFrame 操作符：
+        /*Debug.Log(Time.frameCount);
+        Observable.ReturnUnit().DelayFrame(10).Subscribe(_ => Debug.Log(Time.frameCount));*/
+        #endregion
+
+
+        #region 3、FrameInterval 操作符：
+        // 运?结果：输出距离上?次?标点击所间隔的帧数
+        /*Observable.EveryUpdate()
+            .Where(_ => Input.GetMouseButtonDown(0))
+            .FrameInterval()
+            .Subscribe(frameInterval => Debug.Log($"距离上一次点击的帧数：{frameInterval.Interval},当前的帧数：{frameInterval.Value}"));*/
+        #endregion
+
 
         #region 4、BatchFrame 操作符：
         /*// 运?结果：收集每 100 帧内的点击事件，然后进?统?的输出
@@ -2222,6 +2411,24 @@ public class OperatorNote : MonoBehaviour
             .Subscribe(clicks => Debug.Log(clicks.Count));*/
         #endregion
 
+
+        #region 5、ForEachAsync 操作符：
+        /*Observable.Range(0, 10)
+            .ForEachAsync(number => Debug.Log(number))// 0 1 2 3 4 5 6 7 8 9
+            .Subscribe(number => Debug.Log(number));// 经过 ForEachAsync 操作之后，会返回一个 Unit 类型数据，输出为 ()*/
+        #endregion
+
+
+        #region 6、FrameTimeInterval 操作符：
+        /*// 运?结果：当点击?标时，返回距离上?次点击的帧的总时间
+        Observable.EveryUpdate()
+            .Where(_ => Input.GetMouseButtonDown(0))
+            .FrameTimeInterval()// 如果在 3.5 帧初点击鼠标，输出的是第 3 帧的时间，所以比起 TimeInterval 精度会低一点，TimeInterval 会输出 3.5 帧的时间
+            .Subscribe(frameTimeInterval => 
+                Debug.Log($"距离上一次点击的帧的事件间隔：{frameTimeInterval.Interval}，距离游戏开始帧的总时间：{frameTimeInterval.Value}"));*/
+        #endregion
+
+
         #region 7、SampleFrame 操作符：
         /*// Sample 是“采样”的意思，即隔多少帧取一个数据的意思
         Observable.EveryUpdate().SampleFrame(5).Subscribe(_ => Debug.Log(Time.frameCount));
@@ -2229,106 +2436,96 @@ public class OperatorNote : MonoBehaviour
         // 以前的优化手段：每隔 5 帧调用一次 GC.Collect()
         Observable.EveryUpdate().SampleFrame(5).Subscribe(_ => GC.Collect());*/
         #endregion
-        #endregion
-        #region
-
-        #endregion
 
 
-        #region
-
+        #region 8、RepeatUntilDestroy 操作符：
+        /*// 运?结果：每隔?秒输出?次 ticked，当把脚本所在 GameObject 删除掉，则不再输出
+        Observable.Timer(TimeSpan.FromSeconds(1.0f)).RepeatUntilDestroy(this).Subscribe(_ => Debug.Log("ticked"));*/
         #endregion
 
-        #region
 
+        #region 9、ObserveOnMainThread 操作符：
+        /*// 输出结果: 0，
+        // 2 秒输出：线程结束,  1.034706
+        Debug.Log(Time.time);
+        Observable.Start(() =>// 开启一个线程
+        {
+            Thread.Sleep(TimeSpan.FromSeconds(1.0f));
+            return "线程结束";
+        })
+        .ObserveOnMainThread()
+        .Subscribe(threadResult => Debug.Log($"{threadResult},  {Time.time}"));*/
         #endregion
 
-        #region
 
+        #region 10、DelayFrameSubscript 操作符：
+        /*Debug.Log(Time.frameCount);// 第一帧
+        Observable.ReturnUnit()
+            .DelayFrameSubscription(10)// 延迟 10 帧订阅，第十一帧
+            .Subscribe(_ => Debug.Log(Time.frameCount));// 第十二帧*/
         #endregion
 
-        #region
 
+        #region 11、ThrottleFirstFrame 操作符：
+        /*// 运?结果：每 30 帧内的第?次点击事件输出 clicked
+        Observable.EveryUpdate()
+            .Where(_ => Input.GetMouseButtonDown(0))
+            .ThrottleFirstFrame(100)
+            .Subscribe(_ => Debug.Log("clicked"));
+
+        Observable.EveryUpdate()
+            .SampleFrame(100)// 每隔 100 帧发射一次数据（用于对比上方）
+            .Subscribe(_ => Debug.Log("frame ended"));*/
         #endregion
 
-        #region
 
+        #region 12、ThrottleFrame 操作符：
+        /*// 运?结果：?标点击的 1000 帧内，没有?标点击事件，则在 100 帧后输出，否则重新计算帧数
+        Observable.EveryUpdate()
+            .Where(_ => Input.GetMouseButtonDown(0))
+            .ThrottleFrame(1000)
+            .Subscribe(_ => Debug.Log("clicked"));*/
         #endregion
 
-        #region
 
+        #region 13、TimeoutFrame 操作符：
+        /*// 运?结果：超过 100 帧不点击?标，报出异常
+        Observable.EveryUpdate()
+            .Where(_ => Input.GetMouseButtonDown(0))
+            .TimeoutFrame(100)
+            .Subscribe(_ => Debug.Log("clicked"));*/
         #endregion
 
-        #region
 
+        #region 14、TakeUntilDestroy 操作符：
+        /*// 运?结果：每次按下?标左键，输出 mouse clicked，将该脚本所在的 GameObject 被销毁后，点击?标不再输出
+        Observable.EveryUpdate()
+            .Where(_ => Input.GetMouseButtonDown(0))
+            .TakeUntilDestroy(this)
+            .Subscribe(_ => Debug.Log("mouse clicked"));*/
         #endregion
 
-        #region
 
+        #region 15、TakeUntilDisable 操作符：
+        /*// 运?结果：每次按下?标左键，输出 mouse clicked，将该脚本所在的 GameObject 隐藏掉后，点击?标不再输出
+        Observable.EveryUpdate()
+            .Where(_ => Input.GetMouseButton(0))
+            .TakeUntilDisable(this)
+            .Subscribe(_ => Debug.Log("mouse clicked"));*/
         #endregion
 
-        #region
 
+        #region 16、RepeatUntilDisable 操作符：
+        /*// 运?结果：每隔?秒输出 ticked，当把该脚本所在的 GameObject 隐藏，则停?输出。
+        Observable.Timer(TimeSpan.FromSeconds(1.0f))
+            .RepeatUntilDisable(this)
+            .Subscribe(_ => Debug.Log("ticked"));*/
         #endregion
 
-        #region
+
+        #region 17、总结：(无代码)
 
         #endregion
-
-        #region
-
-        #endregion
-
-        #region
-
-        #endregion
-
-        #region
-
-        #endregion
-
-        #region
-
-        #endregion
-
-        #region
-
-        #endregion
-
-        #region
-
-        #endregion
-
-        #region
-
-        #endregion
-
-        #region
-
-        #endregion
-
-        #region
-
-        #endregion
-
-        #region
-
-        #endregion
-
-        #region
-
-        #endregion
-
-        #region
-
-        #endregion
-
-        #region
-
-        #endregion
-
-        #region
-
         #endregion
     }
 }

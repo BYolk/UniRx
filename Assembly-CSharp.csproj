@@ -57,6 +57,7 @@
      <Compile Include="Assets\Scripts\01_Fundation\UIToDoItem.cs" />
      <Compile Include="Assets\Scripts\01_Fundation\UITodoList.cs" />
      <Compile Include="Assets\Scripts\01_Fundation\UIInputController.cs" />
+     <Compile Include="Assets\Scripts\03_SourceCode\SourceCodeNote.cs" />
  <Reference Include="UnityEngine">
  <HintPath>D:/softwares/UnityHub/Editor/2020.3.30f1c1/Editor/Data/Managed/UnityEngine/UnityEngine.dll</HintPath>
  </Reference>

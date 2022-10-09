@@ -456,9 +456,9 @@ using UniRx.Triggers;
 ///     //学习以上这些后命名??代码就可以实现诸如“应?程序退出事件监听”的逻辑了，不?再创建?个单例类去实现
 ///     --
 /// 3、Trigger (需要引入命名空间 UniRx.Trigger，使用了 Trigger 的脚本所在的对象在运行时会自动添加 Observable Update Trigger.cs)：
-///     1、有时候在某个脚本中实现 Observable.EveryUpdate() 这个 API 需要绑定 MonoBehaviour 的?命周期（主要是将其绑定到 OnDestroy，当然该 API 有的时候也会是全局?且永远不会被销毁的），绑定方式?常简单，只需要?个 AddTo 就可以进?绑定了，代码如下：
+///     1、有时候在某个脚本中实现 Observable.EveryUpdate() 这个 API 需要绑定 MonoBehaviour 的生命周期（主要是将其绑定到 OnDestroy，当然该 API 有的时候也会是全局?且永远不会被销毁的），绑定方式?常简单，只需要?个 AddTo 就可以进?绑定了，代码如下：
 ///         --
-///         Observable.EveryUpdate().SUbscribe(_ => {}).AddTo(this);
+///         Observable.EveryUpdate().Subscribe(_ => {}).AddTo(this);
 ///         //更简洁写法：
 ///         this.UpdateAsObservable().Subscribe(_ => {});//UpdateAsObservable 这种类型的 Observable 就是 Trigger，即触发器
 ///         --
