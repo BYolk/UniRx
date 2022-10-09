@@ -1781,49 +1781,4 @@ public class Note : MonoBehaviour
     }
     #endregion
 
-    #region
-
-    #endregion
-
-    #region
-
-    #endregion
-
-    #region
-
-    #endregion
-
-    #region
-
-    #endregion
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }
